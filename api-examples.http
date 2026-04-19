@@ -1,0 +1,278 @@
+# Exemplos de requisições HTTP para a API Restaurante
+# Use com REST Client (VS Code) ou Postman/Insomnia
+
+@baseUrl = http://localhost:3000
+@token = seu_token_jwt_aqui
+
+### ===== AUTH =====
+
+### Login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "admin@restaurante.local",
+  "password": "admin123"
+}
+
+### ===== USUÁRIOS =====
+
+### Listar usuários
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### Criar usuário
+POST {{baseUrl}}/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "João Atendente",
+  "email": "joao@restaurante.local",
+  "password": "senha123",
+  "role": "atendente",
+  "active": true
+}
+
+### Atualizar usuário
+PUT {{baseUrl}}/users/user-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "João Silva",
+  "active": true
+}
+
+### Desativar usuário
+DELETE {{baseUrl}}/users/user-id-aqui
+Authorization: Bearer {{token}}
+
+### ===== CATEGORIAS =====
+
+### Listar categorias
+GET {{baseUrl}}/categories
+Authorization: Bearer {{token}}
+
+### Criar categoria
+POST {{baseUrl}}/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "almoço",
+  "active": true
+}
+
+### ===== PRODUTOS =====
+
+### Listar produtos
+GET {{baseUrl}}/products
+Authorization: Bearer {{token}}
+
+### Criar produto
+POST {{baseUrl}}/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Parmegiana",
+  "categoryId": "category-id-aqui",
+  "defaultPrice": 45.50,
+  "description": "Frango à parmegiana com arroz, batata frita e queijo",
+  "active": true
+}
+
+### Atualizar produto
+PUT {{baseUrl}}/products/product-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "defaultPrice": 48.00
+}
+
+### ===== INGREDIENTES =====
+
+### Listar ingredientes
+GET {{baseUrl}}/ingredients
+Authorization: Bearer {{token}}
+
+### Criar ingrediente
+POST {{baseUrl}}/ingredients
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Frango",
+  "unit": "g",
+  "cost": 12.50,
+  "currentStock": 5000,
+  "minStock": 500
+}
+
+### ===== FICHA TÉCNICA =====
+
+### Obter receita do produto
+GET {{baseUrl}}/recipes/product-id-aqui
+Authorization: Bearer {{token}}
+
+### Criar/atualizar receita
+PUT {{baseUrl}}/recipes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": "product-id-aqui",
+  "items": [
+    {
+      "ingredientId": "ingredient-id-1",
+      "quantity": 180
+    },
+    {
+      "ingredientId": "ingredient-id-2",
+      "quantity": 150
+    }
+  ]
+}
+
+### ===== PEDIDOS =====
+
+### Criar pedido
+POST {{baseUrl}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "João Silva",
+  "customerPhone": "11999999999",
+  "customerAddress": "Rua das Flores, 123",
+  "tableNumber": "10",
+  "type": "mesa",
+  "notes": "Sem cebola"
+}
+
+### Listar pedidos abertos
+GET {{baseUrl}}/orders/open
+Authorization: Bearer {{token}}
+
+### Obter detalhe do pedido
+GET {{baseUrl}}/orders/order-id-aqui
+Authorization: Bearer {{token}}
+
+### Adicionar item ao pedido
+POST {{baseUrl}}/orders/order-id-aqui/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": "product-id-aqui",
+  "quantity": 2,
+  "unitPrice": 45.50,
+  "notes": "Bem crocante",
+  "accompaniment": "Arroz branco",
+  "extras": "Batata adicional"
+}
+
+### Atualizar item
+PUT {{baseUrl}}/orders/order-id-aqui/items/item-id-aqui
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "unitPrice": 45.50,
+  "notes": "Muito crocante"
+}
+
+### Remover item
+DELETE {{baseUrl}}/orders/order-id-aqui/items/item-id-aqui
+Authorization: Bearer {{token}}
+
+### Mudar status do pedido
+PUT {{baseUrl}}/orders/order-id-aqui/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "enviado_cozinha",
+  "reason": "Cliente na cozinha"
+}
+
+### Fechar e pagar pedido
+POST {{baseUrl}}/orders/order-id-aqui/close
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "discount": 5.00,
+  "deliveryFee": 8.00,
+  "paymentMethod": "dinheiro",
+  "cashAmount": 95.00
+}
+
+### ===== CAIXA =====
+
+### Ver caixa aberto
+GET {{baseUrl}}/cash/current
+Authorization: Bearer {{token}}
+
+### Abrir caixa
+POST {{baseUrl}}/cash/open
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "initialAmount": 500.00
+}
+
+### Adicionar movimento (entrada/sangria)
+POST {{baseUrl}}/cash/movement
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "entrada",
+  "amount": 100.00,
+  "reason": "Cliente pagou antecipado"
+}
+
+### Fechar caixa
+POST {{baseUrl}}/cash/close
+Authorization: Bearer {{token}}
+
+### ===== RELATÓRIOS =====
+
+### Vendas por período
+GET {{baseUrl}}/reports/sales?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Produtos mais vendidos
+GET {{baseUrl}}/reports/top-products?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Relatório de pagamentos
+GET {{baseUrl}}/reports/payments?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Estoque baixo
+GET {{baseUrl}}/reports/low-stock
+Authorization: Bearer {{token}}
+
+### Pedidos por tipo
+GET {{baseUrl}}/reports/orders-by-type?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z
+Authorization: Bearer {{token}}
+
+### ===== IMPRESSÃO =====
+
+### Ticket cozinha
+GET {{baseUrl}}/print/orders/order-id-aqui/kitchen
+Authorization: Bearer {{token}}
+
+### Ticket cliente
+GET {{baseUrl}}/print/orders/order-id-aqui/customer
+Authorization: Bearer {{token}}
+
+### Ticket delivery
+GET {{baseUrl}}/print/orders/order-id-aqui/delivery
+Authorization: Bearer {{token}}

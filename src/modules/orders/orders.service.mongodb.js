@@ -1,0 +1,331 @@
+const { AppError } = require("../../common/AppError");
+const { ORDER_STATUS_FLOW } = require("../../common/constants");
+const { registerLog } = require("../../common/logService");
+const { Order, OrderItem, Product, Ingredient, RecipeItem, Payment } = require("../../models");
+const repository = require("./orders.repository");
+
+function generatePublicId() {
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `PED-${ymd}-${suffix}`;
+}
+
+function calcTotals(items, discount, deliveryFee) {
+  const subtotal = items.reduce((sum, item) => sum + Number(item.total), 0);
+  const total = subtotal - Number(discount || 0) + Number(deliveryFee || 0);
+  if (total < 0) {
+    throw new AppError("Total final nao pode ser negativo", 400);
+  }
+
+  return {
+    subtotal: Number(subtotal.toFixed(2)),
+    total: Number(total.toFixed(2)),
+  };
+}
+
+async function ensureOrderEditable(order) {
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  if (["pago", "cancelado"].includes(order.status)) {
+    throw new AppError("Pedido nao pode ser alterado", 409);
+  }
+}
+
+async function createOrder(data, userId) {
+  const order = new Order({
+    publicId: generatePublicId(),
+    customerName: data.customerName,
+    customerPhone: data.customerPhone,
+    customerAddress: data.customerAddress,
+    tableNumber: data.tableNumber,
+    type: data.type,
+    notes: data.notes,
+    createdById: userId,
+    status: "aberto",
+  });
+
+  await order.save();
+
+  await registerLog({ entity: "orders", entityId: order._id.toString(), action: "create", payload: order, userId });
+  return order;
+}
+
+async function listOpenOrders() {
+  return Order.find({ status: { $nin: ["pago", "cancelado"] } })
+    .populate("items")
+    .sort({ createdAt: -1 });
+}
+
+async function getOrderById(id) {
+  const order = await Order.findById(id)
+    .populate("items")
+    .populate("payments");
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  return order;
+}
+
+async function addItem(orderId, data, userId) {
+  const order = await Order.findById(orderId);
+  await ensureOrderEditable(order);
+
+  const product = await Product.findById(data.productId);
+  if (!product || !product.active) {
+    throw new AppError("Produto nao encontrado ou inativo", 404);
+  }
+
+  const unitPrice = Number(data.unitPrice ?? product.defaultPrice);
+  const total = Number((unitPrice * data.quantity).toFixed(2));
+
+  const item = new OrderItem({
+    orderId,
+    productId: product._id,
+    productName: product.name,
+    quantity: data.quantity,
+    unitPrice,
+    total,
+    notes: data.notes,
+    accompaniment: data.accompaniment,
+    extras: data.extras,
+    priceChangedById: data.unitPrice ? userId : null,
+  });
+
+  await item.save();
+  const updatedOrder = await recalcOrder(orderId);
+
+  await registerLog({
+    entity: "order_items",
+    entityId: item._id.toString(),
+    action: "create",
+    payload: { ...item.toObject(), changedPrice: Boolean(data.unitPrice) },
+    userId,
+  });
+
+  return updatedOrder;
+}
+
+async function updateItem(orderId, itemId, data, userId) {
+  const order = await Order.findById(orderId);
+  await ensureOrderEditable(order);
+
+  const item = await OrderItem.findById(itemId);
+  if (!item || item.orderId.toString() !== orderId) {
+    throw new AppError("Item nao encontrado", 404);
+  }
+
+  const quantity = data.quantity ?? item.quantity;
+  const unitPrice = data.unitPrice ?? Number(item.unitPrice);
+  const payload = {
+    quantity,
+    unitPrice,
+    total: Number((quantity * unitPrice).toFixed(2)),
+    notes: data.notes ?? item.notes,
+    accompaniment: data.accompaniment ?? item.accompaniment,
+    extras: data.extras ?? item.extras,
+  };
+
+  if (data.unitPrice && Number(data.unitPrice) !== Number(item.unitPrice)) {
+    payload.priceChangedById = userId;
+  }
+
+  await OrderItem.findByIdAndUpdate(itemId, payload);
+  const updatedOrder = await recalcOrder(orderId);
+
+  await registerLog({ entity: "order_items", entityId: itemId, action: "update", payload, userId });
+  return updatedOrder;
+}
+
+async function removeItem(orderId, itemId, userId) {
+  const order = await Order.findById(orderId);
+  await ensureOrderEditable(order);
+
+  const item = await OrderItem.findById(itemId);
+  if (!item || item.orderId.toString() !== orderId) {
+    throw new AppError("Item nao encontrado", 404);
+  }
+
+  await OrderItem.findByIdAndDelete(itemId);
+  const updatedOrder = await recalcOrder(orderId);
+
+  await registerLog({ entity: "order_items", entityId: itemId, action: "delete", payload: item, userId });
+  return updatedOrder;
+}
+
+async function recalcOrder(orderId, discount = undefined, deliveryFee = undefined) {
+  const order = await Order.findById(orderId).populate("items");
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  const discountValue = discount !== undefined ? Number(discount) : Number(order.discount);
+  const deliveryValue = deliveryFee !== undefined ? Number(deliveryFee) : Number(order.deliveryFee);
+  const totals = calcTotals(order.items, discountValue, deliveryValue);
+
+  return Order.findByIdAndUpdate(
+    orderId,
+    {
+      subtotal: totals.subtotal,
+      discount: discountValue,
+      deliveryFee: deliveryValue,
+      total: totals.total,
+    },
+    { new: true }
+  ).populate("items").populate("payments");
+}
+
+async function updateStatus(orderId, status, reason, userId) {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  if (order.status === "pago") {
+    throw new AppError("Pedido ja pago nao pode mudar status", 409);
+  }
+
+  const allowed = ORDER_STATUS_FLOW[order.status] || [];
+  if (!allowed.includes(status)) {
+    throw new AppError(`Transicao invalida: ${order.status} -> ${status}`, 400);
+  }
+
+  const payload = { status };
+  if (status === "cancelado") {
+    payload.cancelledAt = new Date();
+  }
+
+  const updated = await Order.findByIdAndUpdate(orderId, payload, { new: true })
+    .populate("items")
+    .populate("payments");
+
+  await registerLog({
+    entity: "orders",
+    entityId: orderId,
+    action: status === "cancelado" ? "cancel" : "status_update",
+    payload: { oldStatus: order.status, status, reason },
+    userId,
+  });
+
+  return updated;
+}
+
+async function closeOrder(orderId, data, userId) {
+  const order = await Order.findById(orderId).populate("items");
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  if (order.status === "pago") {
+    throw new AppError("Pedido ja pago", 409);
+  }
+
+  if (order.items.length === 0) {
+    throw new AppError("Pedido sem itens nao pode ser fechado", 400);
+  }
+
+  const updatedOrder = await recalcOrder(orderId, data.discount, data.deliveryFee);
+
+  const total = Number(updatedOrder.total);
+  const cashAmount = Number(data.cashAmount || 0);
+  const pixAmount = Number(data.pixAmount || 0);
+  const cardAmount = Number(data.cardAmount || 0);
+
+  if (data.paymentMethod === "misto") {
+    const mixedTotal = Number((cashAmount + pixAmount + cardAmount).toFixed(2));
+    if (mixedTotal !== Number(total.toFixed(2))) {
+      throw new AppError("Pagamento misto nao confere com o total", 400);
+    }
+  }
+
+  // Usar sessão para transação ACID
+  const session = await Order.startSession();
+  session.startTransaction();
+
+  try {
+    // Criar pagamento
+    const payment = new Payment({
+      orderId,
+      method: data.paymentMethod,
+      amount: total,
+      cashAmount: cashAmount || null,
+      pixAmount: pixAmount || null,
+      cardAmount: cardAmount || null,
+      registeredById: userId,
+    });
+    await payment.save({ session });
+
+    // Processar itens e baixar estoque
+    const items = await OrderItem.find({ orderId }).session(session);
+
+    for (const item of items) {
+      const recipes = await RecipeItem.find({ productId: item.productId }).session(session);
+      
+      for (const recipeItem of recipes) {
+        const toDecrease = Number(recipeItem.quantity) * item.quantity;
+        const ingredient = await Ingredient.findById(recipeItem.ingredientId).session(session);
+
+        if (!ingredient) {
+          throw new AppError("Ingrediente da receita nao encontrado", 404);
+        }
+
+        if (Number(ingredient.currentStock) < toDecrease) {
+          throw new AppError(`Estoque insuficiente para ${ingredient.name}`, 409);
+        }
+
+        await Ingredient.findByIdAndUpdate(
+          ingredient._id,
+          { currentStock: Number(ingredient.currentStock) - toDecrease },
+          { session }
+        );
+      }
+    }
+
+    // Atualizar pedido como pago
+    await Order.findByIdAndUpdate(
+      orderId,
+      {
+        status: "pago",
+        closedAt: new Date(),
+        paidAt: new Date(),
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+
+  await registerLog({
+    entity: "orders",
+    entityId: orderId,
+    action: "close",
+    payload: {
+      discount: data.discount,
+      deliveryFee: data.deliveryFee,
+      paymentMethod: data.paymentMethod,
+      total,
+    },
+    userId,
+  });
+
+  return Order.findById(orderId).populate("items").populate("payments");
+}
+
+module.exports = {
+  createOrder,
+  listOpenOrders,
+  getOrderById,
+  addItem,
+  updateItem,
+  removeItem,
+  updateStatus,
+  closeOrder,
+};

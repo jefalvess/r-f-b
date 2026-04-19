@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  gerente
+  atendente
+}
+
+enum IngredientUnit {
+  g
+  kg
+  ml
+  l
+  un
+}
+
+enum OrderType {
+  mesa
+  balcao
+  retirada
+  delivery
+}
+
+enum OrderStatus {
+  aberto
+  enviado_cozinha
+  preparando
+  pronto
+  saiu_entrega
+  entregue
+  pago
+  cancelado
+}
+
+enum PaymentMethod {
+  dinheiro
+  pix
+  cartao
+  misto
+}
+
+enum CashMovementType {
+  entrada
+  sangria
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  ordersCreated      Order[]      @relation("OrderCreatedBy")
+  orderItemsChanged  OrderItem[]  @relation("OrderItemPriceChangedBy")
+  paymentsRegistered Payment[]
+  cashRegisters      CashRegister[]
+  cashMovements      CashMovement[]
+  logs               Log[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  name         String
+  categoryId   String
+  defaultPrice Decimal     @db.Decimal(10, 2)
+  description  String?
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  category     Category    @relation(fields: [categoryId], references: [id])
+  recipeItems  RecipeItem[]
+  orderItems   OrderItem[]
+
+  @@unique([name, categoryId])
+}
+
+model Ingredient {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  unit         IngredientUnit
+  cost         Decimal         @db.Decimal(10, 2)
+  currentStock Decimal         @db.Decimal(12, 3)
+  minStock     Decimal         @db.Decimal(12, 3)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  recipeItems  RecipeItem[]
+}
+
+model RecipeItem {
+  id           String      @id @default(cuid())
+  productId    String
+  ingredientId String
+  quantity     Decimal     @db.Decimal(12, 3)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  product      Product     @relation(fields: [productId], references: [id])
+  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
+
+  @@unique([productId, ingredientId])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  publicId       String      @unique
+  customerName   String?
+  customerPhone  String?
+  customerAddress String?
+  tableNumber    String?
+  type           OrderType
+  status         OrderStatus @default(aberto)
+  notes          String?
+  subtotal       Decimal     @default(0) @db.Decimal(12, 2)
+  discount       Decimal     @default(0) @db.Decimal(12, 2)
+  deliveryFee    Decimal     @default(0) @db.Decimal(12, 2)
+  total          Decimal     @default(0) @db.Decimal(12, 2)
+  closedAt       DateTime?
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  createdById    String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  createdBy      User        @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+}
+
+model OrderItem {
+  id               String    @id @default(cuid())
+  orderId          String
+  productId        String
+  productName      String
+  quantity         Int
+  unitPrice        Decimal   @db.Decimal(12, 2)
+  total            Decimal   @db.Decimal(12, 2)
+  notes            String?
+  accompaniment    String?
+  extras           String?
+  priceChangedById String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  order            Order     @relation(fields: [orderId], references: [id])
+  product          Product   @relation(fields: [productId], references: [id])
+  priceChangedBy   User?     @relation("OrderItemPriceChangedBy", fields: [priceChangedById], references: [id])
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  orderId        String
+  method         PaymentMethod
+  amount         Decimal        @db.Decimal(12, 2)
+  cashAmount     Decimal?       @db.Decimal(12, 2)
+  pixAmount      Decimal?       @db.Decimal(12, 2)
+  cardAmount     Decimal?       @db.Decimal(12, 2)
+  registeredById String
+  createdAt      DateTime       @default(now())
+
+  order          Order          @relation(fields: [orderId], references: [id])
+  registeredBy   User           @relation(fields: [registeredById], references: [id])
+}
+
+model CashRegister {
+  id            String         @id @default(cuid())
+  openedById    String
+  closedById    String?
+  initialAmount Decimal        @db.Decimal(12, 2)
+  isOpen        Boolean        @default(true)
+  openedAt      DateTime       @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  openedBy      User           @relation(fields: [openedById], references: [id])
+  movements     CashMovement[]
+}
+
+model CashMovement {
+  id             String           @id @default(cuid())
+  cashRegisterId String
+  userId         String
+  type           CashMovementType
+  amount         Decimal          @db.Decimal(12, 2)
+  reason         String?
+  createdAt      DateTime         @default(now())
+
+  cashRegister   CashRegister     @relation(fields: [cashRegisterId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
+}
+
+model Log {
+  id         String   @id @default(cuid())
+  entity     String
+  entityId   String?
+  action     String
+  payload    Json?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+}

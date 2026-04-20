@@ -3,6 +3,7 @@ const { Router } = require("express");
 const { ensureAuth } = require("../../middlewares/auth");
 const { validate } = require("../../middlewares/validate");
 const controller = require("./orders.controller");
+const { voiceAudioUploadSingle } = require("./orders.voice.upload");
 const {
   createOrderSchema,
   listOrdersSchema,
@@ -18,6 +19,7 @@ const router = Router();
 
 router.use(ensureAuth);
 
+router.post("/orders/voice-parse", voiceAudioUploadSingle, controller.voiceParse);
 router.post("/orders", validate(createOrderSchema), controller.create);
 router.get("/orders/open", validate(listOrdersSchema), controller.listOpen);
 router.get("/orders/:id", validate(orderIdSchema), controller.getById);

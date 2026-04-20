@@ -1,4 +1,5 @@
 const service = require("./orders.service.mongodb");
+const voiceService = require("./orders.voice.service");
 
 async function create(req, res, next) {
   try {
@@ -68,6 +69,14 @@ async function close(req, res, next) {
   }
 }
 
+async function voiceParse(req, res, next) {
+  try {
+    return res.json(await voiceService.parseOrderFromVoice(req.file, req.user.id));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   create,
   listOpen,
@@ -77,4 +86,5 @@ module.exports = {
   removeItem,
   updateStatus,
   close,
+  voiceParse,
 };

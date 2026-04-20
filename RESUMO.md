@@ -85,10 +85,8 @@ test-copit/
     │   ├── users/               (criar, editar, deletar usuários)
     │   ├── categories/          (CRUD categorias)
     │   ├── products/            (CRUD produtos)
-    │   ├── ingredients/         (CRUD ingredientes + estoque)
     │   ├── recipes/             (ficha técnica)
     │   ├── orders/              (núcleo - pedidos completos)
-    │   ├── cash/                (abertura/fechamento caixa)
     │   ├── reports/             (vendas, top produtos, etc)
     │   └── print/               (tickets para impressão)
     └── routes/

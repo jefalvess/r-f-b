@@ -33,27 +33,6 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ===== INGREDIENT SCHEMA =====
-const ingredientSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, unique: true },
-    unit: { type: String, enum: ["g", "kg", "ml", "l", "un"], required: true },
-    cost: { type: Number, required: true },
-    currentStock: { type: Number, required: true },
-    minStock: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
-
-// ===== RECIPE ITEM SCHEMA =====
-const recipeItemSchema = new mongoose.Schema(
-  {
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-    ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: "Ingredient", required: true },
-    quantity: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
 
 // ===== ORDER SCHEMA =====
 const orderSchema = new mongoose.Schema(
@@ -129,31 +108,6 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ===== CASH REGISTER SCHEMA =====
-const cashRegisterSchema = new mongoose.Schema(
-  {
-    openedById: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    closedById: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    initialAmount: { type: Number, required: true },
-    isOpen: { type: Boolean, default: true },
-    openedAt: { type: Date, default: Date.now },
-    closedAt: { type: Date },
-  },
-  { timestamps: true }
-);
-
-// ===== CASH MOVEMENT SCHEMA =====
-const cashMovementSchema = new mongoose.Schema(
-  {
-    cashRegisterId: { type: mongoose.Schema.Types.ObjectId, ref: "CashRegister", required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    type: { type: String, enum: ["entrada", "sangria"], required: true },
-    amount: { type: Number, required: true },
-    reason: { type: String },
-  },
-  { timestamps: true }
-);
-
 // ===== LOG SCHEMA =====
 const logSchema = new mongoose.Schema(
   {
@@ -177,26 +131,20 @@ const counterSchema = new mongoose.Schema(
 
 // Índices
 productSchema.index({ categoryId: 1, name: 1 });
-recipeItemSchema.index({ productId: 1, ingredientId: 1 }, { unique: true });
 orderSchema.index({ status: 1 });
 orderSchema.index({ orderNumber: -1 });
 orderSchema.index({ createdAt: -1 });
 orderItemSchema.index({ orderId: 1 });
 paymentSchema.index({ orderId: 1 });
-cashRegisterSchema.index({ isOpen: 1 });
 logSchema.index({ entity: 1, entityId: 1 });
 
 // Criar modelos
 const User = mongoose.model("User", userSchema);
 const Category = mongoose.model("Category", categorySchema);
 const Product = mongoose.model("Product", productSchema);
-const Ingredient = mongoose.model("Ingredient", ingredientSchema);
-const RecipeItem = mongoose.model("RecipeItem", recipeItemSchema);
 const Order = mongoose.model("Order", orderSchema);
 const OrderItem = mongoose.model("OrderItem", orderItemSchema);
 const Payment = mongoose.model("Payment", paymentSchema);
-const CashRegister = mongoose.model("CashRegister", cashRegisterSchema);
-const CashMovement = mongoose.model("CashMovement", cashMovementSchema);
 const Log = mongoose.model("Log", logSchema);
 const Counter = mongoose.model("Counter", counterSchema);
 
@@ -204,13 +152,9 @@ module.exports = {
   User,
   Category,
   Product,
-  Ingredient,
-  RecipeItem,
   Order,
   OrderItem,
   Payment,
-  CashRegister,
-  CashMovement,
   Log,
   Counter,
 };

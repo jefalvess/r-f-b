@@ -29,7 +29,6 @@
 | users.repository.js | ✅ Convertido |
 | categories.repository.js | ✅ Convertido |
 | products.repository.js | ✅ Convertido |
-| ingredients.repository.js | ✅ Convertido |
 | recipes.repository.js | ✅ Convertido |
 | orders.repository.js | ✅ Convertido |
 | cash.repository.js | ✅ Convertido |

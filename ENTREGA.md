@@ -101,7 +101,6 @@ Seu backend Node.js está **100% implementado** com toda a arquitetura, camadas,
   - Cancelamentos
 - ✅ GET /reports/top-products - 20 produtos mais vendidos
 - ✅ GET /reports/payments - formas de pagamento
-- ✅ GET /reports/low-stock - ingredientes com estoque baixo
 - ✅ GET /reports/orders-by-type - pedidos por tipo (mesa/balcão/etc)
 
 #### 10. Print (Impressão térmica)

@@ -255,9 +255,6 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/reports/payments?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z
 Authorization: Bearer {{token}}
 
-### Estoque baixo
-GET {{baseUrl}}/reports/low-stock
-Authorization: Bearer {{token}}
 
 ### Pedidos por tipo
 GET {{baseUrl}}/reports/orders-by-type?start=2026-04-17T00:00:00Z&end=2026-04-18T23:59:59Z

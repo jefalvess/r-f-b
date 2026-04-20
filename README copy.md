@@ -101,7 +101,6 @@ npm run dev
 - GET /reports/sales
 - GET /reports/top-products
 - GET /reports/payments
-- GET /reports/low-stock
 - GET /reports/orders-by-type
 
 ### Impressão

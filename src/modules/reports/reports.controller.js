@@ -1,4 +1,4 @@
-const service = require("./reports.service");
+const service = require("./reports.service.mongodb");
 
 async function sales(req, res, next) {
   try {
@@ -24,14 +24,6 @@ async function payments(req, res, next) {
   }
 }
 
-async function lowStock(req, res, next) {
-  try {
-    return res.json(await service.stockLow());
-  } catch (error) {
-    return next(error);
-  }
-}
-
 async function byType(req, res, next) {
   try {
     return res.json(await service.ordersByType(req.validated.query));
@@ -40,4 +32,4 @@ async function byType(req, res, next) {
   }
 }
 
-module.exports = { sales, topProducts, payments, lowStock, byType };
+module.exports = { sales, topProducts, payments, byType };

@@ -1,7 +1,7 @@
 const { AppError } = require("../../common/AppError");
 const { ORDER_STATUS_FLOW } = require("../../common/constants");
 const { registerLog } = require("../../common/logService");
-const { Order, OrderItem, Product, Ingredient, RecipeItem, Payment, Counter } = require("../../models");
+const { Order, OrderItem, Product, Payment, Counter } = require("../../models");
 const repository = require("./orders.repository");
 
 function generatePublicId(orderNumber) {
@@ -278,32 +278,6 @@ async function closeOrder(orderId, data, userId) {
       registeredById: userId,
     });
     await payment.save({ session });
-
-    // Processar itens e baixar estoque
-    const items = await OrderItem.find({ orderId }).session(session);
-
-    for (const item of items) {
-      const recipes = await RecipeItem.find({ productId: item.productId }).session(session);
-      
-      for (const recipeItem of recipes) {
-        const toDecrease = Number(recipeItem.quantity) * item.quantity;
-        const ingredient = await Ingredient.findById(recipeItem.ingredientId).session(session);
-
-        if (!ingredient) {
-          throw new AppError("Ingrediente da receita nao encontrado", 404);
-        }
-
-        if (Number(ingredient.currentStock) < toDecrease) {
-          throw new AppError(`Estoque insuficiente para ${ingredient.name}`, 409);
-        }
-
-        await Ingredient.findByIdAndUpdate(
-          ingredient._id,
-          { currentStock: Number(ingredient.currentStock) - toDecrease },
-          { session }
-        );
-      }
-    }
 
     // Atualizar pedido como pago
     await Order.findByIdAndUpdate(

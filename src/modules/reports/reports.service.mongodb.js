@@ -1,4 +1,4 @@
-const { Order, OrderItem, Ingredient, Payment } = require("../../models");
+const { Order, OrderItem, Payment } = require("../../models");
 
 function parsePeriod(query) {
   const start = query.start ? new Date(query.start) : new Date(new Date().setHours(0, 0, 0, 0));
@@ -128,12 +128,6 @@ async function paymentsReport(query) {
   return { period: { start, end }, summary };
 }
 
-async function stockLow() {
-  return Ingredient.find({
-    $expr: { $lte: ["$currentStock", "$minStock"] },
-  }).sort({ name: 1 });
-}
-
 async function ordersByType(query) {
   const { start, end } = parsePeriod(query);
 
@@ -157,4 +151,4 @@ async function ordersByType(query) {
   return result;
 }
 
-module.exports = { salesByPeriod, topProducts, paymentsReport, stockLow, ordersByType };
+module.exports = { salesByPeriod, topProducts, paymentsReport, ordersByType };

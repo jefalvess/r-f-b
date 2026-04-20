@@ -12,7 +12,6 @@ router.use(ensureAuth, ensureRole("admin", "gerente"));
 router.get("/reports/sales", validate(periodQuerySchema), controller.sales);
 router.get("/reports/top-products", validate(periodQuerySchema), controller.topProducts);
 router.get("/reports/payments", validate(periodQuerySchema), controller.payments);
-router.get("/reports/low-stock", controller.lowStock);
 router.get("/reports/orders-by-type", validate(periodQuerySchema), controller.byType);
 
 module.exports = router;

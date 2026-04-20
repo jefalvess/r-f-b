@@ -153,7 +153,6 @@ Perfis:
 /reports/sales              ← Vendas por período
 /reports/top-products       ← 20 produtos mais vendidos
 /reports/payments           ← Formas de pagamento
-/reports/low-stock          ← Ingredientes com alerta
 /reports/orders-by-type     ← Pedidos por tipo
 ```
 

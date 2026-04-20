@@ -83,9 +83,6 @@ const swaggerDocument = {
     "/reports/payments": {
       get: { tags: ["Reports"], summary: "Relatorio de pagamentos", security: [{ bearerAuth: [] }] },
     },
-    "/reports/low-stock": {
-      get: { tags: ["Reports"], summary: "Ingredientes com estoque baixo", security: [{ bearerAuth: [] }] },
-    },
     "/reports/orders-by-type": {
       get: { tags: ["Reports"], summary: "Pedidos por tipo", security: [{ bearerAuth: [] }] },
     },

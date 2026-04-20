@@ -9,11 +9,8 @@ const router = Router();
 
 router.post("/users/bootstrap", validate(createBootstrapUserSchema), usersController.createBootstrapUser);
 
-router.use(ensureAuth);
-
-router.get("/users", ensureRole("admin"), usersController.listUsers);
-router.post("/users", ensureRole("admin"), validate(createUserSchema), usersController.createUser);
-router.put("/users/:id", validate(updateUserSchema), usersController.updateUser);
-router.delete("/users/:id", ensureRole("admin"), validate(userIdSchema), usersController.deleteUser);
+router.get("/users", usersController.listUsers);
+router.post("/users", validate(createUserSchema), usersController.createUser);
+router.delete("/users/:id", validate(userIdSchema), usersController.deleteUser);
 
 module.exports = router;

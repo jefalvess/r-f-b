@@ -4,15 +4,15 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = "admin@restaurante.local";
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const userName = "admin@restaurante.local";
+  const existing = await prisma.user.findUnique({ where: { userName } });
 
   if (!existing) {
     const passwordHash = await bcrypt.hash("admin123", 10);
     await prisma.user.create({
       data: {
         name: "Administrador",
-        email,
+        userName,
         passwordHash,
         role: "admin",
         active: true,

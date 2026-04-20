@@ -150,7 +150,7 @@ npm run dev
 # Terminal 3: Testar endpoints
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@restaurant.com","password":"admin123"}'
+  -d '{"userName":"admin@restaurant.com","password":"admin123"}'
 
 # Ou use Postman/Insomnia para testar todos os endpoints
 

@@ -14,8 +14,8 @@ async function findById(id) {
   return User.findById(id);
 }
 
-async function findByEmail(email) {
-  return User.findOne({ email: email.toLowerCase() });
+async function findByEmail(userName) {
+  return User.findOne({ userName: userName.toLowerCase() });
 }
 
 async function countUsers() {

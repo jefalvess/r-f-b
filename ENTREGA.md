@@ -27,7 +27,7 @@ Seu backend Node.js está **100% implementado** com toda a arquitetura, camadas,
 ### Módulos implementados
 
 #### 1. Auth (Autenticação)
-- ✅ POST /login com email/senha
+- ✅ POST /login com userName/senha
 - ✅ Retorna token JWT + dados do usuário
 - ✅ Validação de credenciais
 
@@ -36,7 +36,7 @@ Seu backend Node.js está **100% implementado** com toda a arquitetura, camadas,
 - ✅ POST /users - criar novo (requer gerente/admin)
 - ✅ PUT /users/:id - atualizar (requer gerente/admin)
 - ✅ DELETE /users/:id - desativar (requer admin)
-- ✅ Validação de email duplicado
+- ✅ Validação de userName duplicado
 - ✅ Senhas hasheadas com bcrypt
 - ✅ Histórico de alterações
 

@@ -45,7 +45,7 @@ npm run dev
 
 ## Login inicial (seed)
 
-- email: admin@restaurante.local
+- userName: admin@restaurante.local
 - senha: admin123
 
 ## Endpoints principais

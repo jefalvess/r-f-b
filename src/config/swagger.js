@@ -24,19 +24,12 @@ const swaggerDocument = {
         summary: "Realiza login e retorna token JWT",
       },
     },
-    "/auth/login": {
-      post: {
-        tags: ["Auth"],
-        summary: "Alias de login",
-      },
-    },
 
     "/users": {
       get: { tags: ["Users"], summary: "Lista usuarios", security: [{ bearerAuth: [] }] },
       post: { tags: ["Users"], summary: "Cria usuario", security: [{ bearerAuth: [] }] },
     },
     "/users/{id}": {
-      put: { tags: ["Users"], summary: "Atualiza usuario", security: [{ bearerAuth: [] }] },
       delete: { tags: ["Users"], summary: "Desativa usuario", security: [{ bearerAuth: [] }] },
     },
 

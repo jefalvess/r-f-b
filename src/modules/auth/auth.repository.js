@@ -4,22 +4,30 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function findUserByEmail(email) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+async function findUserByEmail(userName) {
+  const normalizedEmail = String(userName || "").trim().toLowerCase();
   if (!normalizedEmail) {
     return null;
   }
 
   // Busca direta (mais performatica)
-  const exactMatch = await User.findOne({ email: normalizedEmail });
+  const exactMatch = await User.findOne({ userName: normalizedEmail });
   if (exactMatch) {
     return exactMatch;
   }
 
   // Fallback para dados antigos com caixa diferente
   return User.findOne({
-    email: { $regex: new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i") },
+    userName: { $regex: new RegExp(`^${escapeRegex(normalizedEmail)}$`, "i") },
   });
 }
 
-module.exports = { findUserByEmail };
+async function findUserById(id) {
+  if (!id) {
+    return null;
+  }
+
+  return User.findById(id);
+}
+
+module.exports = { findUserByEmail, findUserById };

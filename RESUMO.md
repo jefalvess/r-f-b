@@ -198,7 +198,7 @@ curl http://localhost:3000/health
 # Login
 curl -X POST http://localhost:3000/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@restaurante.local","password":"admin123"}'
+  -d '{"userName":"admin@restaurante.local","password":"admin123"}'
 
 # Ver api-examples.http para mais exemplos
 ```

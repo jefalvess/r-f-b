@@ -11,7 +11,7 @@ POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "email": "admin@restaurante.local",
+  "userName": "admin@restaurante.local",
   "password": "admin123"
 }
 
@@ -28,7 +28,7 @@ Content-Type: application/json
 
 {
   "name": "João Atendente",
-  "email": "joao@restaurante.local",
+  "userName": "joao@restaurante.local",
   "password": "senha123",
   "role": "atendente",
   "active": true

@@ -1,12 +1,33 @@
 const bcrypt = require("bcryptjs");
 
 const { AppError } = require("../../common/AppError");
-const { signToken } = require("../../common/jwt");
+const {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} = require("../../common/jwt");
 const authRepository = require("./auth.repository");
 
-async function login({ email, password } = {}) {
-    console.error("authService.login called with:", { email, password }); // Log para depuração
-  const normalizedEmail = String(email || "").trim();
+function buildAuthResponse(user) {
+  const token = signAccessToken(user);
+  const refreshToken = signRefreshToken(user);
+
+  return {
+    token,
+    accessToken: token,
+    refreshToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      userName: user.userName,
+      role: user.role,
+      active: user.active,
+    },
+  };
+}
+
+async function login({ userName, password } = {}) {
+  const normalizedEmail = String(userName || "").trim();
   const plainPassword = String(password || "");
 
   if (!normalizedEmail || !plainPassword) {
@@ -14,7 +35,6 @@ async function login({ email, password } = {}) {
   }
 
   const user = await authRepository.findUserByEmail(normalizedEmail);
-  console.log("User found for login:", user); // Log para depuração
 
   if (!user || !user.active) {
     throw new AppError("Credenciais invalidas", 401);
@@ -25,18 +45,25 @@ async function login({ email, password } = {}) {
     throw new AppError("Credenciais invalidas", 401);
   }
 
-  const token = signToken(user);
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      active: user.active,
-    },
-  };
+  return buildAuthResponse(user);
 }
 
-module.exports = { login };
+async function refreshByToken(refreshToken) {
+  const normalizedToken = String(refreshToken || "").trim();
+  const token = normalizedToken.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token) {
+    throw new AppError("Refresh token nao informado", 401);
+  }
+
+  const decoded = verifyRefreshToken(token);
+  const user = await authRepository.findUserById(decoded.sub);
+
+  if (!user || !user.active) {
+    throw new AppError("Usuario invalido para refresh", 401);
+  }
+
+  return buildAuthResponse(user);
+}
+
+module.exports = { login, refreshByToken };

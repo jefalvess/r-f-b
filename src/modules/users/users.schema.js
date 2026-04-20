@@ -5,7 +5,7 @@ const roles = ["admin", "gerente", "atendente"];
 const createUserSchema = z.object({
   body: z.object({
     name: z.string().min(2),
-    email: z.string().email(),
+    userName: z.string().min(1),
     password: z.string().min(6),
     role: z.enum(roles),
     active: z.boolean().optional(),
@@ -17,7 +17,7 @@ const createUserSchema = z.object({
 const createBootstrapUserSchema = z.object({
   body: z.object({
     name: z.string().min(2),
-    email: z.string().email(),
+    userName: z.string().min(1),
     password: z.string().min(6),
     role: z.enum(roles).optional(),
     active: z.boolean().optional(),
@@ -29,7 +29,7 @@ const createBootstrapUserSchema = z.object({
 const updateUserSchema = z.object({
   body: z.object({
     name: z.string().min(2).optional(),
-    email: z.string().email().optional(),
+    userName: z.string().min(1).optional(),
     password: z.string().min(6).optional(),
     currentPassword: z.string().min(6).optional(),
     role: z.enum(roles).optional(),

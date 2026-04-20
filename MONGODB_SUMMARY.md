@@ -160,7 +160,7 @@ const result = await Order.aggregate([
 ## 🗄️ Modelos Mongoose Criados
 
 ```javascript
-1. User           - Autenticação (name, email, passwordHash, role)
+1. User           - Autenticação (name, userName, passwordHash, role)
 2. Category       - Categorias de produtos
 3. Product        - Produtos
 4. Ingredient     - Ingredientes com estoque
@@ -250,13 +250,13 @@ async function connectDB() {
 // src/models/index.js
 const userSchema = new Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
+  userName: { type: String, required: true, unique: true, lowercase: true },
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ['admin', 'gerente', 'atendente'], default: 'atendente' },
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
-userSchema.index({ email: 1 });
+userSchema.index({ userName: 1 });
 ```
 
 ### Serviços Avançados (100+ linhas cada)

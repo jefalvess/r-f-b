@@ -107,7 +107,7 @@ Resposta esperada:
 curl -X POST http://localhost:3000/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@restaurante.local",
+    "userName": "admin@restaurante.local",
     "password": "admin123"
   }'
 ```

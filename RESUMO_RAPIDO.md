@@ -121,7 +121,7 @@ const orders = await Order.aggregate([
 11 schemas criados com validação completa:
 
 ```javascript
-1. User           - { name, email, passwordHash, role, active, timestamps }
+1. User           - { name, userName, passwordHash, role, active, timestamps }
 2. Category       - { name, active, timestamps }
 3. Product        - { name, categoryId(ref), defaultPrice, description, active, timestamps }
 4. Ingredient     - { name, unit(enum), cost, currentStock, minStock, timestamps }

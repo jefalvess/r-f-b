@@ -16,7 +16,7 @@ function ensureAuth(req, res, next) {
   req.user = {
     id: decoded.sub,
     role: decoded.role,
-    email: decoded.email,
+    userName: decoded.userName,
   };
 
   return next();

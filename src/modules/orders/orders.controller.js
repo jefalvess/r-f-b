@@ -69,6 +69,14 @@ async function close(req, res, next) {
   }
 }
 
+async function remove(req, res, next) {
+  try {
+    return res.json(await service.deleteOrder(req.validated.params.id, req.user.id));
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function voiceParse(req, res, next) {
   try {
     return res.json(await voiceService.parseOrderFromVoice(req.file, req.user.id));
@@ -86,5 +94,6 @@ module.exports = {
   removeItem,
   updateStatus,
   close,
+  remove,
   voiceParse,
 };

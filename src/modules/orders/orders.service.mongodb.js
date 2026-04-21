@@ -364,6 +364,42 @@ async function closeOrder(orderId, data, userId) {
   return Order.findById(orderId).populate("items").populate("payments");
 }
 
+async function deleteOrder(orderId, userId) {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new AppError("Pedido nao encontrado", 404);
+  }
+
+  // Mantem rastreabilidade financeira: pedido pago nao deve ser removido.
+  if (order.status === "pago") {
+    throw new AppError("Pedido pago nao pode ser excluido", 409);
+  }
+
+  const [itemsResult, paymentsResult] = await Promise.all([
+    OrderItem.deleteMany({ orderId }),
+    Payment.deleteMany({ orderId }),
+  ]);
+
+  await Order.findByIdAndDelete(orderId);
+
+  await registerLog({
+    entity: "orders",
+    entityId: orderId,
+    action: "delete",
+    payload: {
+      status: order.status,
+      deletedItems: itemsResult.deletedCount || 0,
+      deletedPayments: paymentsResult.deletedCount || 0,
+    },
+    userId,
+  });
+
+  cache.invalidate("orders");
+  cache.invalidate("reports");
+
+  return { message: "Pedido removido" };
+}
+
 module.exports = {
   createOrder,
   listOpenOrders,
@@ -373,4 +409,5 @@ module.exports = {
   removeItem,
   updateStatus,
   closeOrder,
+  deleteOrder,
 };

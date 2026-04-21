@@ -23,6 +23,7 @@ router.post("/orders/voice-parse", voiceAudioUploadSingle, controller.voiceParse
 router.post("/orders", validate(createOrderSchema), controller.create);
 router.get("/orders/open", validate(listOrdersSchema), controller.listOpen);
 router.get("/orders/:id", validate(orderIdSchema), controller.getById);
+router.delete("/orders/:id", validate(orderIdSchema), controller.remove);
 router.post("/orders/:id/items", validate(addItemSchema), controller.addItem);
 router.put("/orders/:id/items/:itemId", validate(updateItemSchema), controller.updateItem);
 router.delete("/orders/:id/items/:itemId", validate(itemIdSchema), controller.removeItem);

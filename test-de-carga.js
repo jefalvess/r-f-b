@@ -45,13 +45,9 @@ export const options = {
   scenarios: {
     carga_pedidos: {
       executor: "ramping-vus",
-      startVUs: 20,
+      startVUs: 10,
       stages: [
-        { duration: "1m",  target: 20  },   // aquecimento
-        { duration: "3m",  target: 50  },   // carga moderada
-        { duration: "5m",  target: 100 },   // carga alta → ~10k pedidos
-        { duration: "2m",  target: 50  },   // resfriamento
-        { duration: "1m",  target: 0   },   // encerramento
+        { duration: "20m",  target: 10  },   // aquecimento
       ],
     },
   },

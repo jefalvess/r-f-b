@@ -7,7 +7,7 @@ const { periodQuerySchema } = require("./reports.schema");
 
 const router = Router();
 
-router.use(ensureAuth, ensureRole("admin", "gerente"));
+router.use(ensureAuth, ensureRole("admin"));
 
 router.get("/reports/sales", validate(periodQuerySchema), controller.sales);
 router.get("/reports/top-products", validate(periodQuerySchema), controller.topProducts);

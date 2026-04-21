@@ -1,6 +1,6 @@
 const { z } = require("zod");
 
-const roles = ["admin", "gerente", "atendente"];
+const roles = ["admin", "atendente"];
 
 const createUserSchema = z.object({
   body: z.object({

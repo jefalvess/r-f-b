@@ -13,7 +13,7 @@ async function getNextOrderNumber() {
   const counter = await Counter.findOneAndUpdate(
     { key: "order_number" },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { new: true, upsert: true },
   );
 
   return counter.seq;
@@ -60,7 +60,13 @@ async function createOrder(data, userId) {
 
   await order.save();
 
-  await registerLog({ entity: "orders", entityId: order._id.toString(), action: "create", payload: order, userId });
+  await registerLog({
+    entity: "orders",
+    entityId: order._id.toString(),
+    action: "create",
+    payload: order,
+    userId,
+  });
   cache.invalidate("orders");
   return order;
 }
@@ -71,7 +77,7 @@ async function listOpenOrders(filters = {}) {
   if (cached) return cached;
 
   const query = {};
-  const requestedType = filters.type || filters.tipy;
+  const requestedType = filters.type;
 
   if (filters.status) {
     query.status = filters.status;
@@ -81,18 +87,22 @@ async function listOpenOrders(filters = {}) {
     query.type = requestedType;
   }
 
-  const orders = await Order.find(query)
-    .populate("items")
-    .sort({ orderNumber: -1, createdAt: -1 });
+  let orders;
+
+  if (query.status === "pago" || query.status === "cancelado") {
+    orders = await Order.find(query).populate("items").sort({ updatedAt: -1 });
+  } else {
+    orders = await Order.find(query)
+      .populate("items")
+      .sort({ orderNumber: -1});
+  }
 
   cache.set(cacheKey, orders, 30);
   return orders;
 }
 
 async function getOrderById(id) {
-  const order = await Order.findById(id)
-    .populate("items")
-    .populate("payments");
+  const order = await Order.findById(id).populate("items").populate("payments");
   if (!order) {
     throw new AppError("Pedido nao encontrado", 404);
   }
@@ -167,7 +177,13 @@ async function updateItem(orderId, itemId, data, userId) {
   await OrderItem.findByIdAndUpdate(itemId, payload);
   const updatedOrder = await recalcOrder(orderId);
 
-  await registerLog({ entity: "order_items", entityId: itemId, action: "update", payload, userId });
+  await registerLog({
+    entity: "order_items",
+    entityId: itemId,
+    action: "update",
+    payload,
+    userId,
+  });
   cache.invalidate("orders");
   return updatedOrder;
 }
@@ -184,19 +200,31 @@ async function removeItem(orderId, itemId, userId) {
   await OrderItem.findByIdAndDelete(itemId);
   const updatedOrder = await recalcOrder(orderId);
 
-  await registerLog({ entity: "order_items", entityId: itemId, action: "delete", payload: item, userId });
+  await registerLog({
+    entity: "order_items",
+    entityId: itemId,
+    action: "delete",
+    payload: item,
+    userId,
+  });
   cache.invalidate("orders");
   return updatedOrder;
 }
 
-async function recalcOrder(orderId, discount = undefined, deliveryFee = undefined) {
+async function recalcOrder(
+  orderId,
+  discount = undefined,
+  deliveryFee = undefined,
+) {
   const order = await Order.findById(orderId).populate("items");
   if (!order) {
     throw new AppError("Pedido nao encontrado", 404);
   }
 
-  const discountValue = discount !== undefined ? Number(discount) : Number(order.discount);
-  const deliveryValue = deliveryFee !== undefined ? Number(deliveryFee) : Number(order.deliveryFee);
+  const discountValue =
+    discount !== undefined ? Number(discount) : Number(order.discount);
+  const deliveryValue =
+    deliveryFee !== undefined ? Number(deliveryFee) : Number(order.deliveryFee);
   const totals = calcTotals(order.items, discountValue, deliveryValue);
 
   return Order.findByIdAndUpdate(
@@ -207,8 +235,10 @@ async function recalcOrder(orderId, discount = undefined, deliveryFee = undefine
       deliveryFee: deliveryValue,
       total: totals.total,
     },
-    { new: true }
-  ).populate("items").populate("payments");
+    { new: true },
+  )
+    .populate("items")
+    .populate("payments");
 }
 
 async function updateStatus(orderId, status, reason, userId) {
@@ -262,7 +292,11 @@ async function closeOrder(orderId, data, userId) {
     throw new AppError("Pedido sem itens nao pode ser fechado", 400);
   }
 
-  const updatedOrder = await recalcOrder(orderId, data.discount, data.deliveryFee);
+  const updatedOrder = await recalcOrder(
+    orderId,
+    data.discount,
+    data.deliveryFee,
+  );
 
   const total = Number(updatedOrder.total);
   const cashAmount = Number(data.cashAmount || 0);
@@ -301,7 +335,7 @@ async function closeOrder(orderId, data, userId) {
         closedAt: new Date(),
         paidAt: new Date(),
       },
-      { session }
+      { session },
     );
 
     await session.commitTransaction();

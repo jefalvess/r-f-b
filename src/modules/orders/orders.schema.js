@@ -32,7 +32,6 @@ const listOrdersSchema = z.object({
   query: z.object({
     status: z.enum(["aberto", "pago", "cancelado"]).optional(),
     type: z.enum(["retirada", "delivery"]).optional(),
-    tipy: z.enum(["retirada", "delivery"]).optional(),
   }),
 });
 

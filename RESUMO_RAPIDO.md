@@ -164,7 +164,7 @@ ANTES DE INICIAR SERVIDOR:
 PARA VALIDAR:
   ⏳ npm run dev inicia
   ⏳ GET /health retorna 200
-  ⏳ POST /auth/login funciona
+  ⏳ POST /login funciona
 ```
 
 ---

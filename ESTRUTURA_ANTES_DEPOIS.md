@@ -322,8 +322,8 @@ Todos os 50+ endpoints permanecem 100% compatíveis:
 
 ```
 Auth:
-  POST   /auth/login          ✅ (findByEmail)
-  POST   /auth/refresh        ✅ (findById)
+  POST   /login          ✅ (findByEmail)
+  POST   /refresh        ✅ (findById)
 
 Users:
   GET    /users               ✅ (find)

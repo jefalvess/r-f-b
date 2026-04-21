@@ -148,7 +148,7 @@ mongosh
 npm run dev
 
 # Terminal 3: Testar endpoints
-curl -X POST http://localhost:3000/auth/login \
+curl -X POST http://localhost:3000/login \
   -H "Content-Type: application/json" \
   -d '{"userName":"admin@restaurant.com","password":"admin123"}'
 

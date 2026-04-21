@@ -28,11 +28,14 @@ import { Counter, Rate, Trend } from "k6/metrics";
 // ──────────────────────────────────────────
 const pedidosCriados     = new Counter("pedidos_criados");
 const itensAdicionados   = new Counter("itens_adicionados");
+const pedidosFechados    = new Counter("pedidos_fechados");
 const errosCriacao       = new Counter("erros_criacao");
 const errosItens         = new Counter("erros_itens");
+const errosFechamento    = new Counter("erros_fechamento");
 const taxaErros          = new Rate("taxa_erros");
 const duracaoCriar       = new Trend("duracao_criar_pedido_ms", true);
 const duracaoAdicionarItem = new Trend("duracao_adicionar_item_ms", true);
+const duracaoFechar      = new Trend("duracao_fechar_pedido_ms", true);
 
 // ──────────────────────────────────────────
 // Configuração da carga
@@ -59,6 +62,7 @@ export const options = {
     taxa_erros:               ["rate<0.05"],
     duracao_criar_pedido_ms:  ["p(95)<1500"],
     duracao_adicionar_item_ms: ["p(95)<1500"],
+    duracao_fechar_pedido_ms: ["p(95)<1500"],
   },
 };
 
@@ -68,8 +72,7 @@ export const options = {
 const BASE_URL   = __ENV.BASE_URL   || "http://localhost:3000";
 const USERNAME   = __ENV.USERNAME   || "jeferson";
 const PASSWORD   = __ENV.PASSWORD   || "123456";
-const PRODUCT_ID = __ENV.PRODUCT_ID || "69e78a32f40b5fbf9512fcc5";
-const PRODUCT_IDS = (__ENV.PRODUCT_IDS || "69e78a32f40b5fbf9512fcc6,69e78a32f40b5fbf9512fcc5")
+const PRODUCT_IDS = (__ENV.PRODUCT_IDS || "69e78a32f40b5fbf9512fcc5,69e78a32f40b5fbf9512fcc6,69e78a32f40b5fbf9512fcc7")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
@@ -77,6 +80,7 @@ const PRODUCT_IDS = (__ENV.PRODUCT_IDS || "69e78a32f40b5fbf9512fcc6,69e78a32f40b
 const HEADERS_JSON = { "Content-Type": "application/json" };
 
 const ORDER_TYPES     = ["mesa", "balcao", "retirada", "delivery"];
+const PAYMENT_METHODS = ["dinheiro", "pix", "cartao"];
 const NOMES           = ["Ana", "Bruno", "Carlos", "Diana", "Eduardo", "Fernanda", "Gabriel"];
 const NOTAS_ITEM      = ["sem sal", "bem passado", "ponto", "sem cebola", "extra queijo", ""];
 
@@ -106,8 +110,10 @@ function safeBodySnippet(res, maxLen = 200) {
 // Setup: valida conectividade antes de começar
 // ──────────────────────────────────────────
 export function setup() {
-  if (!PRODUCT_ID && PRODUCT_IDS.length === 0) {
-    console.error("Defina PRODUCT_ID ou PRODUCT_IDS para o teste de carga.");
+  const usableProductIds = [...new Set(PRODUCT_IDS)];
+  if (usableProductIds.length < 3) {
+    console.error("Defina ao menos 3 PRODUCT_IDS unicos para o teste de carga.");
+    return { token: null, productIds: [] };
   }
 
   const res = http.post(
@@ -120,18 +126,18 @@ export function setup() {
 
   if (res.status !== 200) {
     console.error(`[SETUP] Login falhou: ${res.status} — ${res.body}`);
-    return { token: null };
+    return { token: null, productIds: [] };
   }
 
   const loginData = safeJson(res);
-  return { token: loginData?.token || null };
+  return { token: loginData?.token || null, productIds: usableProductIds.slice(0, 3) };
 }
 
 // ──────────────────────────────────────────
 // Função principal — executada por cada VU em loop
 // ──────────────────────────────────────────
 export default function (data) {
-  if (!data?.token) {
+  if (!data?.token || !Array.isArray(data?.productIds) || data.productIds.length < 3) {
     taxaErros.add(1);
     errosCriacao.add(1);
     sleep(1);
@@ -192,18 +198,14 @@ export default function (data) {
   }
 
   // ── 3. Adicionar 3 itens ──────────────
-  const itensDoPedido = PRODUCT_IDS.length > 0
-    ? [
-        PRODUCT_IDS[0],
-        PRODUCT_IDS[1] || PRODUCT_IDS[0],
-        PRODUCT_IDS[2] || PRODUCT_IDS[0],
-      ]
-    : [PRODUCT_ID, PRODUCT_ID, PRODUCT_ID];
+  const itensDoPedido = data.productIds;
+  let totalItens = 0;
 
   for (let i = 0; i < 3; i++) {
-    const qty   = randomInt(1, 4);
+    const qty   = 1;
     const price = randomItem([20, 22, 25, 26, 27]);
     const nota = randomItem(NOTAS_ITEM);
+    totalItens += qty * price;
 
     const tAdicionarInicio = Date.now();
     const itemRes = http.post(
@@ -231,7 +233,41 @@ export default function (data) {
     sleep(0.1);
   }
 
-  taxaErros.add(0);
+  // ── 4. Fechar pedido ──────────────────
+  const deliveryFee = tipo === "delivery" ? 5 : 0;
+  const totalPedido = Number((totalItens + deliveryFee).toFixed(2));
+  const paymentMethod = randomItem(PAYMENT_METHODS);
+
+  const closeBody = {
+    discount: 0,
+    deliveryFee,
+    paymentMethod,
+    ...(paymentMethod === "dinheiro" && { cashAmount: totalPedido }),
+    ...(paymentMethod === "pix" && { pixAmount: totalPedido }),
+    ...(paymentMethod === "cartao" && { cardAmount: totalPedido }),
+  };
+
+  const tFecharInicio = Date.now();
+  const closeRes = http.post(
+    `${BASE_URL}/orders/${orderId}/close`,
+    JSON.stringify(closeBody),
+    { headers: authHeaders }
+  );
+  duracaoFechar.add(Date.now() - tFecharInicio);
+
+  const closeOk = check(closeRes, {
+    "pedido fechado 200": (r) => r.status === 200,
+    "status pago": (r) => Boolean(safeJson(r)?.status === "pago"),
+  });
+
+  if (!closeOk) {
+    taxaErros.add(1);
+    errosFechamento.add(1);
+    console.error(`[CLOSE] ${closeRes.status}: ${safeBodySnippet(closeRes)}`);
+  } else {
+    pedidosFechados.add(1);
+    taxaErros.add(0);
+  }
 
   sleep(randomInt(1, 3));
 }
@@ -241,5 +277,5 @@ export default function (data) {
 // ──────────────────────────────────────────
 export function teardown() {
   console.log("=== Teste de carga finalizado ===");
-  console.log("Verifique as metricas: pedidos_criados e itens_adicionados");
+  console.log("Verifique as metricas: pedidos_criados, itens_adicionados e pedidos_fechados");
 }
